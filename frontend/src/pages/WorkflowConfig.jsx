@@ -32,7 +32,8 @@ export default function WorkflowConfig() {
         setLoading(true);
         try {
             const token = await currentUser.getIdToken();
-            await axios.post('http://localhost:5000/api/run-workflow', {
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            await axios.post(`${API_URL}/api/run-workflow`, {
                 ...config,
                 distinctId,
                 mapping

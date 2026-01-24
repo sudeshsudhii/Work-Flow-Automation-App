@@ -12,7 +12,8 @@ export default function Logs() {
         setLoading(true);
         try {
             const token = await currentUser.getIdToken();
-            const response = await axios.get('http://localhost:5000/api/logs', {
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const response = await axios.get(`${API_URL}/api/logs`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setLogs(response.data);

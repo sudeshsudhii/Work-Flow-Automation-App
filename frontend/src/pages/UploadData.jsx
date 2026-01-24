@@ -26,7 +26,8 @@ export default function UploadData() {
 
         try {
             const token = await currentUser.getIdToken();
-            const response = await axios.post('http://localhost:5000/api/upload', formData, {
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const response = await axios.post(`${API_URL}/api/upload`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     'Authorization': `Bearer ${token}`
