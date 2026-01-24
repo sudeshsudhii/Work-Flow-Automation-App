@@ -7,6 +7,7 @@ const bodyParser = require('body-parser');
 const workflowRoutes = require('./routes/workflowRoutes');
 const authRoutes = require('./routes/authRoutes');
 const logRoutes = require('./routes/logRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -25,6 +26,7 @@ app.get('/', (req, res) => {
 app.use('/api', workflowRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/logs', logRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
