@@ -142,8 +142,21 @@ router.post('/run-workflow', verifyToken, async (req, res) => {
         res.json({ message: 'Workflow completed', runId: runId, count: processedRecords.length, sent: sentCount });
 
     } catch (error) {
-        console.error('Workflow run error:', error);
-        res.status(500).json({ message: 'Failed to run workflow' });
+        console.error('CRITICAL: Workflow run error:', error);
+
+        let clientMessage = 'Failed to run workflow';
+        if (error.code === 'ENOENT') {
+            clientMessage = `Internal Error: Uploaded file not found on server. (ID: ${distinctId})`;
+        } else if (error.code === 7 || error.message.includes('permission-denied')) {
+            clientMessage = 'Firestore Permission Denied. Check Service Account permissions.';
+        } else if (error.message) {
+            clientMessage = `Workflow Error: ${error.message}`;
+        }
+
+        res.status(500).json({
+            message: clientMessage,
+            details: error.stack // Include stack in dev/internal for better debugging
+        });
     }
 });
 

@@ -13,16 +13,40 @@ let db, auth;
 
 if (!admin.apps.length) {
     try {
-        if (fs.existsSync(absolutePath)) {
-            const serviceAccount = require(absolutePath);
+        let serviceAccount;
+
+        // 1. Try to parse from Environment Variable directly (as JSON string)
+        const envKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+        if (envKey) {
+            try {
+                // If it starts with '{', it's likely a JSON string
+                if (envKey.trim().startsWith('{')) {
+                    serviceAccount = JSON.parse(envKey);
+                    console.log('Firebase: Using JSON key from environment variable');
+                }
+            } catch (e) {
+                console.warn('Firebase: Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY as JSON, trying as path...');
+            }
+        }
+
+        // 2. Try to load from file path if not already loaded from env
+        if (!serviceAccount) {
+            if (fs.existsSync(absolutePath)) {
+                serviceAccount = require(absolutePath);
+                console.log('Firebase: Using key from file:', absolutePath);
+            }
+        }
+
+        // 3. Initialize if we have a service account
+        if (serviceAccount) {
             admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount)
             });
-            console.log('Firebase Admin Initialized');
+            console.log('Firebase Admin Initialized Successfully');
             db = admin.firestore();
             auth = admin.auth();
         } else {
-            console.warn('Warning: serviceAccountKey.json not found. Using Advanced MOCK Firebase services.');
+            console.warn('Warning: No Firebase Service Account found (JSON or file). Falling back to Mocks.');
 
             // In-Memory Store
             const store = {

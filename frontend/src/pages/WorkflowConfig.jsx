@@ -43,8 +43,11 @@ export default function WorkflowConfig() {
             toast.success('Workflow Started Successfully!', { description: 'Check the logs for progress.' });
             navigate('/logs');
         } catch (error) {
-            console.error(error);
-            toast.error('Failed to start workflow');
+            console.error("Workflow failed to start:", error);
+            const backendMessage = error.response?.data?.message || 'Failed to start workflow';
+            toast.error('Workflow Execution Failed', {
+                description: backendMessage
+            });
         } finally {
             setLoading(false);
         }
