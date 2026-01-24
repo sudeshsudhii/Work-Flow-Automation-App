@@ -4,7 +4,11 @@ const { db } = require('../config/firebaseConfig');
 const verifyToken = require('../middleware/authMiddleware');
 
 router.post('/login', verifyToken, async (req, res) => {
-    const { uid, name, email, picture } = req.user;
+    const user = req.user || {};
+    const uid = user.uid;
+    const name = user.name || user.displayName || 'User';
+    const email = user.email || '';
+    const picture = user.picture || user.photoURL || '';
 
     try {
         const userRef = db.collection('users').doc(uid);

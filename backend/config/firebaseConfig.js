@@ -134,4 +134,8 @@ if (!admin.apps.length) {
     auth = admin.auth();
 }
 
+// Final assignments to ensure exports are correct
+db = db || null;
+auth = auth || null;
+
 module.exports = { admin, db, auth };

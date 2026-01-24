@@ -23,13 +23,14 @@ app.get('/', (req, res) => {
 });
 
 // Detailed Health Check
-const { admin } = require('./config/firebaseConfig');
+const { admin, db, auth } = require('./config/firebaseConfig');
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'Online',
         firebaseReal: admin.apps.length > 0,
-        dbDefined: typeof db !== 'undefined',
-        authDefined: typeof auth !== 'undefined',
+        dbDefined: !!db,
+        authDefined: !!auth,
+        dbType: db?.constructor?.name || typeof db,
         envKeyPresent: !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
         envKeyLength: process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.length || 0,
         timestamp: new Date().toISOString()
