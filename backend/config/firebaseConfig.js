@@ -17,15 +17,17 @@ if (!admin.apps.length) {
 
         // 1. Try to parse from Environment Variable directly (as JSON string)
         const envKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+        console.log(`Firebase: Checking FIREBASE_SERVICE_ACCOUNT_KEY env var (Length: ${envKey ? envKey.length : 0})`);
+
         if (envKey) {
             try {
                 // If it starts with '{', it's likely a JSON string
                 if (envKey.trim().startsWith('{')) {
                     serviceAccount = JSON.parse(envKey);
-                    console.log('Firebase: Using JSON key from environment variable');
+                    console.log('Firebase: Successfully parsed JSON key from environment variable');
                 }
             } catch (e) {
-                console.warn('Firebase: Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY as JSON, trying as path...');
+                console.warn('Firebase: Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY as JSON:', e.message);
             }
         }
 
@@ -97,7 +99,10 @@ if (!admin.apps.length) {
                     };
                 },
                 limit: (n) => mockCollection(name),
-                orderBy: (f, d) => mockCollection(name) // Mock chainability
+                orderBy: (f, d) => mockCollection(name),
+                where: (f, o, v) => mockCollection(name),
+                offset: (n) => mockCollection(name),
+                count: () => ({ get: async () => ({ data: () => ({ count: store[name]?.length || 0 }) }) })
             });
 
             db = {

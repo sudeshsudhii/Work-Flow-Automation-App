@@ -22,6 +22,18 @@ app.get('/', (req, res) => {
     res.send('Intelligent Workflow Automation Platform API is Running');
 });
 
+// Detailed Health Check
+const { admin } = require('./config/firebaseConfig');
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'Online',
+        firebaseReal: admin.apps.length > 0,
+        envKeyPresent: !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
+        envKeyLength: process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.length || 0,
+        timestamp: new Date().toISOString()
+    });
+});
+
 // Use Routes
 app.use('/api', workflowRoutes);
 app.use('/api/auth', authRoutes);
