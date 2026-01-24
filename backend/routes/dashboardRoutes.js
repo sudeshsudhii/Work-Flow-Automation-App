@@ -18,8 +18,8 @@ router.get('/metrics', verifyToken, async (req, res) => {
 
         res.json({ totalRuns, totalSent, totalFailed });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Failed to fetch metrics' });
+        console.error('Dashboard Metrics Error:', error);
+        res.status(500).json({ error: 'Failed to fetch metrics', details: error.message });
     }
 });
 
@@ -52,8 +52,8 @@ router.get('/weekly-activity', verifyToken, async (req, res) => {
 
         res.json(Object.values(activity));
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Failed to fetch weekly activity' });
+        console.error('Dashboard Weekly Activity Error:', error);
+        res.status(500).json({ error: 'Failed to fetch weekly activity', details: error.message });
     }
 });
 
@@ -76,8 +76,8 @@ router.get('/delivery-status', verifyToken, async (req, res) => {
             { name: 'Failed', value: failed },
         ]);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Failed to fetch delivery status' });
+        console.error('Dashboard Delivery Status Error:', error);
+        res.status(500).json({ error: 'Failed to fetch delivery status', details: error.message });
     }
 });
 

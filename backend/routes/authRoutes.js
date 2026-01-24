@@ -27,8 +27,12 @@ router.post('/login', verifyToken, async (req, res) => {
         const userData = (await userRef.get()).data();
         res.json({ message: 'User authenticated', user: userData });
     } catch (error) {
-        console.error('Auth error:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error('CRITICAL: Auth Login error:', error);
+        res.status(500).json({
+            message: 'Auth server error',
+            error: error.message,
+            stack: error.stack
+        });
     }
 });
 

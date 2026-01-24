@@ -28,6 +28,8 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'Online',
         firebaseReal: admin.apps.length > 0,
+        dbDefined: typeof db !== 'undefined',
+        authDefined: typeof auth !== 'undefined',
         envKeyPresent: !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
         envKeyLength: process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.length || 0,
         timestamp: new Date().toISOString()
