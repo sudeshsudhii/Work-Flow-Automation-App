@@ -34,7 +34,7 @@ const admin = require('firebase-admin');
 
 // POST /api/run-workflow
 router.post('/run-workflow', verifyToken, async (req, res) => {
-    const { workflowType, config, distinctId, mapping, tone } = req.body;
+    const { workflowType, channels, distinctId, mapping, tone } = req.body;
 
     if (!distinctId) return res.status(400).json({ message: 'Missing file ID' });
 
@@ -86,7 +86,7 @@ router.post('/run-workflow', verifyToken, async (req, res) => {
             let status = 'Pending';
             let error = '';
 
-            if (config.channels.email && record.userEmail) {
+            if (channels?.email && record.userEmail) {
                 console.log(`Processing ${record.userEmail}...`);
                 const result = await sendEmail(record.userEmail, record.generatedSubject, record.generatedMessage);
 
@@ -130,7 +130,7 @@ router.post('/run-workflow', verifyToken, async (req, res) => {
             totalRecords: processedRecords.length,
             messagesSent: sentCount,
             failedMessages: failedCount,
-            channelsUsed: Object.keys(config.channels).filter(k => config.channels[k]),
+            channelsUsed: Object.keys(channels || {}).filter(k => channels[k]),
             startedAt: admin.firestore.Timestamp.fromDate(new Date(startedAt)),
             completedAt: admin.firestore.Timestamp.now(),
             status: failedCount === 0 ? 'Success' : (sentCount > 0 ? 'Partial' : 'Failed'),
