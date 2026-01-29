@@ -24,6 +24,7 @@ const sendEmail = async (to, subject, text, html) => {
     }
 
     try {
+        console.log(`[Email] Attempting to send to ${to}...`);
         const info = await transporter.sendMail({
             from: process.env.SMTP_FROM || '"AutoFlow" <no-reply@autoflow.com>',
             to,
@@ -31,10 +32,11 @@ const sendEmail = async (to, subject, text, html) => {
             text,
             html: html || text // Fallback to text if no HTML
         });
-        console.log(`[Email] Sent to ${to}: ${info.messageId}`);
+        console.log(`[Email] ✓ Sent successfully to ${to}: ${info.messageId}`);
         return { success: true, messageId: info.messageId };
     } catch (error) {
-        console.error(`[Email] Failed to ${to}:`, error.message);
+        console.error(`[Email] ✗ Failed to send to ${to}:`, error.message);
+        console.error(`[Email] Error code: ${error.code}, Response: ${error.response}`);
         return { success: false, error: error.message };
     }
 };

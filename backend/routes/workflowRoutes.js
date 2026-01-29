@@ -76,11 +76,20 @@ router.post('/run-workflow', verifyToken, async (req, res) => {
         });
 
         // 3. Create Workflow Run Document
-        const runRef = db.collection('workflowRuns').doc();
-        const runId = runRef.id;
+        let runRef, runId, batch;
+        let useFirestore = true;
+
+        try {
+            runRef = db.collection('workflowRuns').doc();
+            runId = runRef.id;
+            batch = db.batch(); // Firestore batch for logs
+        } catch (error) {
+            console.warn('[Workflow] Firestore unavailable, using fallback mode:', error.message);
+            useFirestore = false;
+            runId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        }
 
         // 4. Send Emails & Log
-        const batch = db.batch(); // Firestore batch for logs
 
         for (const [index, record] of processedRecords.entries()) {
             let status = 'Pending';
@@ -103,39 +112,62 @@ router.post('/run-workflow', verifyToken, async (req, res) => {
             }
 
             // Create Log Entry
-            const logRef = db.collection('messageLogs').doc();
-            batch.set(logRef, {
-                runId: runId,
-                name: record[mapping?.Name || 'Name'] || 'User',
-                email: record.userEmail || '',
-                channel: 'Email',
-                messageContent: record.generatedMessage,
-                deliveryStatus: status,
-                errorMessage: error,
-                timestamp: admin.firestore.Timestamp.now()
-            });
+            if (useFirestore) {
+                try {
+                    const logRef = db.collection('messageLogs').doc();
+                    batch.set(logRef, {
+                        runId: runId,
+                        workflowType: workflowType,  // Added this line
+                        name: record[mapping?.Name || 'Name'] || 'User',
+                        email: record.userEmail || '',
+                        channel: 'Email',
+                        messageContent: record.generatedMessage,
+                        deliveryStatus: status,
+                        errorMessage: error,
+                        timestamp: admin.firestore.Timestamp.now()
+                    });
+                } catch (err) {
+                    console.warn('[Workflow] Failed to add log to batch:', err.message);
+                }
+            } else {
+                console.log(`[Local Log] ${status} - ${record.userEmail}: ${record.generatedMessage}`);
+            }
 
             // Keep adding to batch, commit every 500 ops (simplified here for MVP, assuming < 500 rows)
         }
 
-        await batch.commit();
+        if (useFirestore) {
+            try {
+                await batch.commit();
+            } catch (err) {
+                console.warn('[Workflow] Failed to commit batch:', err.message);
+            }
+        }
 
         // 5. Generate AI Summary (Mocked logic for now)
         const successRate = ((sentCount / processedRecords.length) * 100).toFixed(1);
         const summaryText = `Out of ${processedRecords.length} records, ${sentCount} messages were sent successfully. ${failedCount} failed. Overall success rate: ${successRate}%.`;
 
         // 6. Update Workflow Run with final stats
-        await runRef.set({
-            workflowType,
-            totalRecords: processedRecords.length,
-            messagesSent: sentCount,
-            failedMessages: failedCount,
-            channelsUsed: Object.keys(channels || {}).filter(k => channels[k]),
-            startedAt: admin.firestore.Timestamp.fromDate(new Date(startedAt)),
-            completedAt: admin.firestore.Timestamp.now(),
-            status: failedCount === 0 ? 'Success' : (sentCount > 0 ? 'Partial' : 'Failed'),
-            summaryText: summaryText
-        });
+        if (useFirestore) {
+            try {
+                await runRef.set({
+                    workflowType,
+                    totalRecords: processedRecords.length,
+                    messagesSent: sentCount,
+                    failedMessages: failedCount,
+                    channelsUsed: Object.keys(channels || {}).filter(k => channels[k]),
+                    startedAt: admin.firestore.Timestamp.fromDate(new Date(startedAt)),
+                    completedAt: admin.firestore.Timestamp.now(),
+                    status: failedCount === 0 ? 'Success' : (sentCount > 0 ? 'Partial' : 'Failed'),
+                    summaryText: summaryText
+                });
+            } catch (err) {
+                console.warn('[Workflow] Failed to save workflow run:', err.message);
+            }
+        } else {
+            console.log(`[Local Summary] ${summaryText}`);
+        }
 
         console.log(`Workflow ${workflowType} complete. Sent: ${sentCount}`);
 

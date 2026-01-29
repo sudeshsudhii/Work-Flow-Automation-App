@@ -3,13 +3,13 @@ import { getAuth } from "firebase/auth";
 // import { getAnalytics } from "firebase/analytics"; // Optional
 
 const firebaseConfig = {
-    apiKey: "AIzaSyA1j64YYWHcTdzS33BilBXfVXV2wAhZA-o",
-    authDomain: "workflowautomation-b9184.firebaseapp.com",
-    projectId: "workflowautomation-b9184",
-    storageBucket: "workflowautomation-b9184.firebasestorage.app",
-    messagingSenderId: "372956166632",
-    appId: "1:372956166632:web:cb7ec36f81772227df8c5d",
-    measurementId: "G-1LK276P42C"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 const app = initializeApp(firebaseConfig);

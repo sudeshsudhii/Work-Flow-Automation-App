@@ -42,8 +42,19 @@ A full-stack application for automating workflows using Excel uploads, AI, and n
     npm install
     ```
 2.  **Firebase Config**:
-    - Open `src/firebase.js`.
-    - Replace the `firebaseConfig` object with your web app keys from Firebase Console.
+    - Copy `.env.example` to `.env`:
+        ```bash
+        cp .env.example .env
+        ```
+    - Update the `.env` file with your Firebase web app keys from Firebase Console:
+      - `VITE_FIREBASE_API_KEY`
+      - `VITE_FIREBASE_AUTH_DOMAIN`
+      - `VITE_FIREBASE_PROJECT_ID`
+      - `VITE_FIREBASE_STORAGE_BUCKET`
+      - `VITE_FIREBASE_MESSAGING_SENDER_ID`
+      - `VITE_FIREBASE_APP_ID`
+      - `VITE_FIREBASE_MEASUREMENT_ID`
+    - Optionally update `VITE_API_URL` if your backend runs on a different port.
 3.  Start the app:
     ```bash
     npm run dev
