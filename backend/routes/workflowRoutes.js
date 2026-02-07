@@ -29,6 +29,7 @@ const xlsx = require('xlsx');
 
 const { addLog } = require('../services/logStore');
 const { sendEmail } = require('../services/emailService');
+const { generateEmailContent } = require('../services/aiService');
 const { db } = require('../config/firebaseConfig');
 const admin = require('firebase-admin');
 
@@ -50,30 +51,43 @@ router.post('/run-workflow', verifyToken, async (req, res) => {
         let sentCount = 0;
         let failedCount = 0;
 
-        // 2. Process Records 
-        const processedRecords = data.map(record => {
+        // 2. Process Records with AI-generated content
+        const processedRecords = [];
+        for (const record of data) {
             const name = record[mapping?.Name || 'Name'] || 'User';
             const balance = record[mapping?.Balance || 'Balance'] || '0';
             const email = record[mapping?.Email || 'Email'];
 
-            let message = '';
-            let subject = '';
-            if (workflowType === 'Fees') {
-                subject = 'Action Required: Fee Payment Reminder';
-                message = `Hello ${name}, this is a ${tone} reminder to pay your balance of ${balance}.`;
-            } else {
-                subject = `Update regarding ${workflowType}`;
-                message = `Hello ${name}, regarding ${workflowType}.`;
-            }
+            // Generate AI-powered email content
+            try {
+                const { subject, body: message } = await generateEmailContent({
+                    recipientName: name,
+                    workflowType,
+                    balance,
+                    tone
+                });
 
-            return {
-                ...record,
-                generatedMessage: message,
-                generatedSubject: subject,
-                userEmail: email,
-                tone
-            };
-        });
+                processedRecords.push({
+                    ...record,
+                    generatedMessage: message,
+                    generatedSubject: subject,
+                    userEmail: email,
+                    tone,
+                    status: 'Pending' // Initial status before sending
+                });
+            } catch (error) {
+                console.error(`[WorkflowRun] Failed to generate email for ${email}:`, error.message);
+                processedRecords.push({
+                    ...record,
+                    generatedMessage: null,
+                    generatedSubject: null,
+                    userEmail: email,
+                    tone,
+                    status: 'Failed',
+                    error: `AI Generation Failed: ${error.message}`
+                });
+            }
+        }
 
         // 3. Create Workflow Run Document
         let runRef, runId, batch;
@@ -92,10 +106,13 @@ router.post('/run-workflow', verifyToken, async (req, res) => {
         // 4. Send Emails & Log
 
         for (const [index, record] of processedRecords.entries()) {
-            let status = 'Pending';
-            let error = '';
+            let status = record.status || 'Pending';
+            let error = record.error || '';
 
-            if (channels?.email && record.userEmail) {
+            // If AI generation failed, skip sending
+            if (status === 'Failed') {
+                failedCount++;
+            } else if (channels?.email && record.userEmail) {
                 console.log(`Processing ${record.userEmail}...`);
                 const result = await sendEmail(record.userEmail, record.generatedSubject, record.generatedMessage);
 

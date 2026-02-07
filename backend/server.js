@@ -42,8 +42,28 @@ app.get('/api/health', (req, res) => {
         dbType: db?.constructor?.name || typeof db,
         envKeyPresent: !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
         envKeyLength: process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.length || 0,
+        geminiConfigured: !!process.env.GEMINI_API_KEY,
         timestamp: new Date().toISOString()
     });
+});
+
+// AI Test Endpoint
+const { testAIConnection, generateEmailContent } = require('./services/aiService');
+app.get('/api/test-ai', async (req, res) => {
+    const connectionTest = await testAIConnection();
+    if (!connectionTest.success) {
+        return res.json({ success: false, error: connectionTest.error, hint: 'Add GEMINI_API_KEY to your .env file' });
+    }
+
+    // Generate a sample email
+    const sample = await generateEmailContent({
+        recipientName: 'Test User',
+        workflowType: 'Fees',
+        balance: '$500',
+        tone: 'friendly'
+    });
+
+    res.json({ success: true, sampleEmail: sample });
 });
 
 // Use Routes
