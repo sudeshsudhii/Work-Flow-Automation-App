@@ -1,0 +1,48 @@
+<h2>Hello {{name}},</h2>
+
+<p>
+    We hope this email finds you well.
+    {{#if isOverdue}}
+    <span class="highlight">This is an urgent reminder regarding your outstanding balance.</span>
+    {{else}}
+    This is a gentle reminder regarding your upcoming fee payment.
+    {{/if}}
+</p>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th>Amount Due</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{description}}</td>
+                <td><strong>{{balance}}</strong></td>
+            </tr>
+            {{#if isOverdue}}
+            <tr>
+                <td colspan="2" style="color: #dc3545; font-size: 13px; text-align: center; background-color: #fff3f4;">
+                    Please process this payment immediately to avoid service interruption.
+                </td>
+            </tr>
+            {{/if}}
+        </tbody>
+    </table>
+</div>
+
+<p>
+    If you have already made this payment, please disregard this notice. You can view your full account details or make
+    a payment by clicking the button below.
+</p>
+
+<div style="text-align: center;">
+    <a href="{{paymentLink}}" class="btn">Pay Now</a>
+</div>
+
+<p style="margin-top: 30px;">
+    Best regards,<br>
+    <strong>AutoFlow Team</strong>
+</p>

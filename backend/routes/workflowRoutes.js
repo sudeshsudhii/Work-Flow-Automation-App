@@ -29,7 +29,7 @@ const xlsx = require('xlsx');
 
 const { addLog } = require('../services/logStore');
 const { sendEmail } = require('../services/emailService');
-const { generateEmailContent } = require('../services/aiService');
+const templateRenderer = require('../utils/templateRenderer');
 const { db } = require('../config/firebaseConfig');
 const admin = require('firebase-admin');
 
@@ -58,13 +58,17 @@ router.post('/run-workflow', verifyToken, async (req, res) => {
             const balance = record[mapping?.Balance || 'Balance'] || '0';
             const email = record[mapping?.Email || 'Email'];
 
-            // Generate AI-powered email content
+            // Generate Email Content via Handlebars Template
             try {
-                const { subject, body: message } = await generateEmailContent({
-                    recipientName: name,
-                    workflowType,
+                // Determine template based on tone/workflowType or hardcoded for now 
+                const isOverdue = parseInt(balance) > 1000 || tone.toLowerCase().includes('urgent');
+
+                const { subject, html: message } = templateRenderer.render('feeReminder', {
+                    name,
                     balance,
-                    tone
+                    isOverdue,
+                    workflowType,
+                    description: 'Outstanding account balance'
                 });
 
                 processedRecords.push({
@@ -84,7 +88,7 @@ router.post('/run-workflow', verifyToken, async (req, res) => {
                     userEmail: email,
                     tone,
                     status: 'Failed',
-                    error: `AI Generation Failed: ${error.message}`
+                    error: `Template Generation Failed: ${error.message}`
                 });
             }
         }
@@ -114,7 +118,11 @@ router.post('/run-workflow', verifyToken, async (req, res) => {
                 failedCount++;
             } else if (channels?.email && record.userEmail) {
                 console.log(`Processing ${record.userEmail}...`);
-                const result = await sendEmail(record.userEmail, record.generatedSubject, record.generatedMessage);
+                const result = await sendEmail({
+                    to: record.userEmail,
+                    subject: record.generatedSubject,
+                    html: record.generatedMessage
+                });
 
                 if (result.success) {
                     sentCount++;
