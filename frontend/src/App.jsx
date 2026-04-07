@@ -8,6 +8,8 @@ import UploadData from './pages/UploadData';
 import WorkflowConfig from './pages/WorkflowConfig';
 import Templates from './pages/Templates';
 import Logs from './pages/Logs';
+import Reports from './pages/Reports';
+import AIMonitor from './pages/AIMonitor';
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
             <Route path="workflows" element={<WorkflowConfig />} />
             <Route path="templates" element={<Templates />} />
             <Route path="logs" element={<Logs />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="ai-monitor" element={<AIMonitor />} />
           </Route>
         </Routes>
       </Router>

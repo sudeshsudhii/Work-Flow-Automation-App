@@ -66,6 +66,12 @@ app.get('/api/test-ai', async (req, res) => {
     res.json({ success: true, sampleEmail: sample });
 });
 
+// SSE Real-time AI logs
+const aiLogger = require('./services/aiLogger');
+app.get('/api/logs/stream', (req, res) => {
+    aiLogger.addClient(req, res);
+});
+
 // Use Routes
 app.use('/api', workflowRoutes);
 app.use('/api/auth', authRoutes);

@@ -16,45 +16,33 @@ const generateEmailContent = async (context) => {
     }
 
     try {
-        // Prepare structured data for the AI
-        const rowData = {
-            name: recipientName,
-            workflowType: workflowType,
-            balance: balance || 'N/A',
-            tone: tone || 'professional'
-        };
+        const prompt = `You are a professional message generator.
 
-        const prompt = `You are a controlled AI system embedded inside a workflow automation app.
+Generate a ${context.tone || 'Professional'} ${context.workflowType} message.
 
-YOUR JOB:
-Generate a NEW email message based ONLY on the data and instructions provided.
+Recipient: ${context.recipientName}
+Organization: ${context.organizationName || 'AutoFlow'}
 
-ABSOLUTE RULES (DO NOT BREAK):
-1. Do NOT use or imitate any previous email templates
-2. Do NOT use default or generic email language
-3. Do NOT guess missing information
-4. Do NOT add anything that is not in the data
-5. Do NOT explain what you are doing
-6. Do NOT output markdown or bullet points
-7. Do NOT repeat any sentence from past responses
-8. Sign off as "AutoFlow Team"
+Additional context:
+Event: ${context.eventName || 'N/A'}
+Date: ${context.eventDate || 'N/A'}
+Time: ${context.eventTime || 'N/A'}
+Location: ${context.eventLocation || 'N/A'}
+Fee Amount: ${context.feeAmount || context.balance || 'N/A'}
+Due Date: ${context.dueDate || 'N/A'}
+Task: ${context.taskName || 'N/A'}
+Task Deadline: ${context.taskDeadline || 'N/A'}
 
-IF YOU CANNOT FOLLOW THE RULES:
-Return exactly this text: "ERROR: INSUFFICIENT DATA"
-
-INPUT DATA:
-Name: ${rowData.name}
-Workflow Type: ${rowData.workflowType}
-Balance/Amount: ${rowData.balance}
-
-INSTRUCTIONS:
-Purpose: ${rowData.workflowType}
-Tone: ${rowData.tone}
-Channel: Email
+Requirements:
+* professional tone
+* concise
+* email-ready
+* personalized
+* no placeholders
 
 FINAL COMMAND:
-Generate ONE fresh email with a subject line.
 Output ONLY valid JSON in this exact format: {"subject": "...", "body": "..."}`;
+
 
         const response = await axios.post(
             `${GEMINI_API_URL}?key=${apiKey}`,

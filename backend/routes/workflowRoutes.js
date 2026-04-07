@@ -32,10 +32,13 @@ const { sendEmail } = require('../services/emailService');
 const templateRenderer = require('../utils/templateRenderer');
 const { db } = require('../config/firebaseConfig');
 const admin = require('firebase-admin');
+const { generateEmailContent } = require('../services/aiService');
+const aiLogger = require('../services/aiLogger');
+const { applySmartRules } = require('../services/aiRulesEngine');
 
 // POST /api/run-workflow
 router.post('/run-workflow', verifyToken, async (req, res) => {
-    const { workflowType, channels, distinctId, mapping, tone } = req.body;
+    const { workflowType, channels, distinctId, mapping, tone, smartRulesEnabled } = req.body;
 
     if (!distinctId) return res.status(400).json({ message: 'Missing file ID' });
 
@@ -57,40 +60,95 @@ router.post('/run-workflow', verifyToken, async (req, res) => {
             const name = record[mapping?.Name || 'Name'] || 'User';
             const balance = record[mapping?.Balance || 'Balance'] || '0';
             const email = record[mapping?.Email || 'Email'];
+            let currentTone = tone;
+            
+            aiLogger.logSystem(`Processing record for ${name}...`);
 
-            // Generate Email Content via Handlebars Template
-            try {
-                // Determine template based on tone/workflowType or hardcoded for now 
-                const isOverdue = parseInt(balance) > 1000 || tone.toLowerCase().includes('urgent');
-
-                const { subject, html: message } = templateRenderer.render('feeReminder', {
-                    name,
-                    balance,
-                    isOverdue,
-                    workflowType,
-                    description: 'Outstanding account balance'
-                });
-
-                processedRecords.push({
-                    ...record,
-                    generatedMessage: message,
-                    generatedSubject: subject,
-                    userEmail: email,
-                    tone,
-                    status: 'Pending' // Initial status before sending
-                });
-            } catch (error) {
-                console.error(`[WorkflowRun] Failed to generate email for ${email}:`, error.message);
-                processedRecords.push({
-                    ...record,
-                    generatedMessage: null,
-                    generatedSubject: null,
-                    userEmail: email,
-                    tone,
-                    status: 'Failed',
-                    error: `Template Generation Failed: ${error.message}`
-                });
+            // Apply Smart AI Rules
+            const ruleContext = {
+                tone,
+                balance,
+                workflowType,
+                smartRulesEnabled,
+                // Passing other typical standard mapped fields for rule engine checking
+                dueDate: record[mapping?.DueDate || 'DueDate'] || null
+            };
+            const adjustedRules = applySmartRules(ruleContext);
+            currentTone = adjustedRules.tone;
+            
+            if (adjustedRules.appliedRules.length > 0) {
+                aiLogger.log('SMART RULES', `Applied adjustments: ${adjustedRules.appliedRules.join(', ')}`);
             }
+
+            let generatedSubject = null;
+            let generatedMessage = null;
+            let generationStatus = 'Pending';
+            let generationError = null;
+
+            // Generate Content (Try AI first, Fallback to Template)
+            if (process.env.GEMINI_API_KEY) {
+                aiLogger.logAIStart(workflowType, currentTone, name);
+                aiLogger.logAIRequest();
+
+                try {
+                    const aiContext = {
+                        recipientName: name,
+                        workflowType,
+                        tone: currentTone,
+                        balance: balance, // legacy support
+                        feeAmount: balance, 
+                        organizationName: record[mapping?.OrganizationName || 'OrganizationName'],
+                        eventName: record[mapping?.EventName || 'EventName'],
+                        eventDate: record[mapping?.EventDate || 'EventDate'],
+                        eventTime: record[mapping?.EventTime || 'EventTime'],
+                        eventLocation: record[mapping?.EventLocation || 'EventLocation'],
+                        dueDate: record[mapping?.DueDate || 'DueDate'],
+                        taskName: record[mapping?.TaskName || 'TaskName'],
+                        taskDeadline: record[mapping?.TaskDeadline || 'TaskDeadline'],
+                    };
+
+                    const aiResult = await generateEmailContent(aiContext);
+                    generatedSubject = aiResult.subject;
+                    generatedMessage = aiResult.body;
+                    aiLogger.logAIResponse();
+
+                } catch (error) {
+                    aiLogger.logError('AI ERROR', `Failed: ${error.message}`);
+                    aiLogger.logFallback();
+                    generationError = `AI Generation Failed: ${error.message}`;
+                }
+            } else {
+                aiLogger.logFallback('No AI Key. Using template engine.');
+            }
+
+            // Fallback Generation via Handlebars Template
+            if (!generatedMessage || !generatedSubject) {
+                try {
+                    const isOverdue = parseInt(balance.toString().replace(/[^0-9.-]+/g, '')) > 1000 || currentTone.toLowerCase().includes('urgent');
+                    const templateResult = templateRenderer.render('feeReminder', {
+                        name,
+                        balance,
+                        isOverdue,
+                        workflowType,
+                        description: 'Outstanding workflow notification'
+                    });
+                    generatedSubject = templateResult.subject;
+                    generatedMessage = templateResult.html;
+                } catch (error) {
+                    generationError = `Fallback Template Failed: ${error.message}`;
+                    generationStatus = 'Failed';
+                }
+            }
+
+            processedRecords.push({
+                ...record,
+                generatedMessage,
+                generatedSubject,
+                userEmail: email,
+                tone: currentTone,
+                status: generationStatus,
+                error: generationError
+            });
         }
 
         // 3. Create Workflow Run Document
@@ -113,11 +171,11 @@ router.post('/run-workflow', verifyToken, async (req, res) => {
             let status = record.status || 'Pending';
             let error = record.error || '';
 
-            // If AI generation failed, skip sending
+            // If AI/Template generation failed, skip sending
             if (status === 'Failed') {
                 failedCount++;
             } else if (channels?.email && record.userEmail) {
-                console.log(`Processing ${record.userEmail}...`);
+                aiLogger.logEmailStart(record.userEmail);
                 const result = await sendEmail({
                     to: record.userEmail,
                     subject: record.generatedSubject,
@@ -127,13 +185,16 @@ router.post('/run-workflow', verifyToken, async (req, res) => {
                 if (result.success) {
                     sentCount++;
                     status = 'Sent';
+                    aiLogger.logEmailSuccess(record.userEmail);
                 } else {
                     failedCount++;
                     status = 'Failed';
                     error = result.error || 'Unknown error';
+                    aiLogger.logEmailFail(record.userEmail, error);
                 }
             } else {
                 status = 'Skipped'; // No channel or email
+                aiLogger.logSystem(`Skipping delivery for ${record.userEmail || name} (No valid channel)`);
             }
 
             // Create Log Entry
