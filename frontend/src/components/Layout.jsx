@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
   UploadCloud,
@@ -13,22 +14,25 @@ import {
   Search,
   Bell,
   Moon,
-  Menu
+  Menu,
+  Cpu
 } from 'lucide-react';
 import { Toaster } from 'sonner';
+import LanguageSwitcher from './LanguageSwitcher';
 
 export default function Layout() {
-    const { logout, currentUser } = useAuth();
+    const { logout, currentUser, role } = useAuth();
+    const { t } = useTranslation();
     const [isSidebarOpen, setSidebarOpen] = useState(true);
 
     const navItems = [
-        { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-        { name: 'Upload Data', path: '/upload', icon: UploadCloud },
-        { name: 'Configuration', path: '/workflows', icon: Settings },
-        { name: 'Templates', path: '/templates', icon: FileText },
-        { name: 'Logs', path: '/logs', icon: Activity },
-        { name: 'Reports', path: '/reports', icon: BarChart2 },
-        { name: 'Settings', path: '/settings', icon: Settings },
+        { name: t('nav_dashboard'), path: '/', icon: LayoutDashboard },
+        { name: t('nav_upload'), path: '/upload', icon: UploadCloud },
+        { name: t('nav_config'), path: '/workflows', icon: Settings },
+        { name: t('nav_templates'), path: '/templates', icon: FileText },
+        { name: t('nav_logs'), path: '/logs', icon: Activity },
+        { name: t('nav_reports'), path: '/reports', icon: BarChart2 },
+        { name: t('nav_ai_monitor'), path: '/ai-monitor', icon: Cpu },
     ];
 
     return (
@@ -44,7 +48,7 @@ export default function Layout() {
                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                     </div>
-                    {isSidebarOpen && <span>AutoFlow</span>}
+                    {isSidebarOpen && <span>{t('app_name')}</span>}
                 </div>
 
                 <div className="px-6 py-4">
@@ -62,7 +66,7 @@ export default function Layout() {
                 <nav className="flex-1 overflow-y-auto py-2 custom-scrollbar">
                     <ul className="space-y-1 px-4">
                         {navItems.map((item) => (
-                            <li key={item.name}>
+                            <li key={item.path}>
                                 <NavLink
                                     to={item.path}
                                     className={({ isActive }) =>
@@ -81,22 +85,30 @@ export default function Layout() {
                     </ul>
                 </nav>
 
+                {/* Logout Button */}
+                {isSidebarOpen && (
+                    <div className="px-4 pb-2">
+                        <button
+                            onClick={logout}
+                            className="flex items-center gap-3 px-3 py-3 rounded-lg w-full text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all font-medium text-sm"
+                        >
+                            <LogOut size={18} className="shrink-0" />
+                            <span>{t('sign_out')}</span>
+                        </button>
+                    </div>
+                )}
+
                 {/* User Profile Area */}
                 <div className="p-4 mt-auto">
                     <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold shrink-0">
-                            {currentUser?.email?.[0].toUpperCase() || 'K'}
+                            {currentUser?.email?.[0]?.toUpperCase() || 'U'}
                         </div>
                         {isSidebarOpen && (
                             <div className="overflow-hidden flex-1">
-                                <div className="text-sm font-semibold text-white truncate">{currentUser?.email?.split('@')[0] || 'Keerthana'}</div>
-                                <div className="text-xs text-slate-500">Admin</div>
+                                <div className="text-sm font-semibold text-white truncate">{currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User'}</div>
+                                <div className="text-xs text-slate-500">{role || t('viewer')}</div>
                             </div>
-                        )}
-                        {isSidebarOpen && (
-                             <button className="text-slate-500 hover:text-slate-300 transition-colors">
-                                 <Settings size={16} />
-                             </button>
                         )}
                     </div>
                 </div>
@@ -115,34 +127,34 @@ export default function Layout() {
                             <Menu size={20} />
                         </button>
                         <h1 className="text-[15px] font-semibold text-slate-800 hidden sm:block">
-                            Workspace
+                            {t('workspace')}
                         </h1>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                         {/* Search Bar */}
                         <div className="hidden md:flex relative items-center">
                             <Search className="w-4 h-4 absolute left-3 text-slate-400" />
                             <input 
                                 type="text" 
-                                placeholder="Search workflows, data..." 
+                                placeholder={`${t('search')}...`}
                                 className="pl-9 pr-4 py-2 w-64 bg-slate-100/80 border border-transparent focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none rounded-full text-sm transition-all"
                             />
                         </div>
 
+                        {/* Language Switcher */}
+                        <LanguageSwitcher />
+
                         {/* Icons */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                             <button className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
                                 <Bell size={18} />
                                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 border-[1.5px] border-white rounded-full"></span>
                             </button>
-                            <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors mr-1">
-                                <Moon size={18} />
-                            </button>
                             
                             {/* Top Nav Avatar */}
                             <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-semibold cursor-pointer shadow-sm">
-                                {currentUser?.email?.[0].toUpperCase() || 'K'}
+                                {currentUser?.email?.[0]?.toUpperCase() || 'U'}
                             </div>
                         </div>
                     </div>

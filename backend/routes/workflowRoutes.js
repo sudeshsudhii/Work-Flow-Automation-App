@@ -194,7 +194,7 @@ router.post('/run-workflow', verifyToken, async (req, res) => {
                 }
             } else {
                 status = 'Skipped'; // No channel or email
-                aiLogger.logSystem(`Skipping delivery for ${record.userEmail || name} (No valid channel)`);
+                aiLogger.logSystem(`Skipping delivery for ${record.userEmail || record[mapping?.Name || 'Name'] || 'User'} (No valid channel)`);
             }
 
             // Create Log Entry

@@ -114,15 +114,18 @@ if (!admin.apps.length) {
                 })
             };
 
-            // Mock Auth
+            // Mock Auth - only accepts valid demo token
             auth = {
                 verifyIdToken: async (token) => {
-                    return {
-                        uid: 'mock-user-123',
-                        email: 'demo@example.com',
-                        name: 'Demo User',
-                        picture: 'https://via.placeholder.com/150'
-                    };
+                    if (token === 'demo-token-valid-2024') {
+                        return {
+                            uid: 'demo-123',
+                            email: 'demo@autoflow.app',
+                            name: 'Demo User',
+                            picture: null
+                        };
+                    }
+                    throw new Error('Invalid token: Mock auth only accepts demo token');
                 }
             };
         }

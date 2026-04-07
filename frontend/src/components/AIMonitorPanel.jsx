@@ -9,7 +9,8 @@ const AIMonitorPanel = () => {
         let eventSource;
 
         const connectToStream = () => {
-            eventSource = new EventSource('http://localhost:5000/api/logs/stream');
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            eventSource = new EventSource(`${API_URL}/api/logs/stream`);
 
             eventSource.onopen = () => {
                 setConnected(true);

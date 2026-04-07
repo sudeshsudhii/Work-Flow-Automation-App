@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -13,23 +14,25 @@ import AIMonitor from './pages/AIMonitor';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
+    <ErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<Login />} />
 
-          <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            <Route index element={<Dashboard />} />
-            <Route path="upload" element={<UploadData />} />
-            <Route path="workflows" element={<WorkflowConfig />} />
-            <Route path="templates" element={<Templates />} />
-            <Route path="logs" element={<Logs />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="ai-monitor" element={<AIMonitor />} />
-          </Route>
-        </Routes>
-      </Router>
-    </AuthProvider>
+            <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+              <Route index element={<Dashboard />} />
+              <Route path="upload" element={<UploadData />} />
+              <Route path="workflows" element={<WorkflowConfig />} />
+              <Route path="templates" element={<Templates />} />
+              <Route path="logs" element={<Logs />} />
+              <Route path="reports" element={<Reports />} />
+              <Route path="ai-monitor" element={<AIMonitor />} />
+            </Route>
+          </Routes>
+        </Router>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
